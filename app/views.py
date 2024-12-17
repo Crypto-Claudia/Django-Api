@@ -35,11 +35,23 @@ def register(request):
 
 @login_required(login_url='/nidLogin')
 def my_page(request):
-    context = {}
+    # 현재 로그인한 사용자 가져오기
+    user = request.user
+
+    # Users 테이블에서 해당 사용자 객체 가져오기
+    user_record = get_object_or_404(Users, user_id=user.user_id)
+
+    # Info 테이블에서 해당 사용자 정보 가져오기
+    info_record = get_object_or_404(Info, id=user_record.id)
+
+    user_diseases = info_record.diseases
+    user_region = info_record.region
+    context = {'diseases': user_diseases, 'region': user_region}
     return render(request, 'mypage.html', context)
 
 @login_required(login_url='/nidLogin')
 def update_user_info(request):
+    print(request.session.session_key)
     if request.method == 'POST':
         try:
             # 현재 로그인한 사용자 가져오기
@@ -71,10 +83,10 @@ def update_user_info(request):
             info_record.save()
 
             # 디버그 출력 (필요시)
-            print(f"User: {user_record.user_id}, Email: {user_record.email}")
-            print(f"Info: ID {info_record.id}, Region: {info_record.region}, Disease: {info_record.diseases}")
+            # print(f"User: {user_record.user_id}, Email: {user_record.email}")
+            # print(f"Info: ID {info_record.id}, Region: {info_record.region}, Disease: {info_record.diseases}")
 
-            return JsonResponse({'success': True})
+            return redirect('/mypage')
 
         except Exception as e:
             # 예외 처리

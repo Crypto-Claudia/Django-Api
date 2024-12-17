@@ -15,9 +15,9 @@
     <form action="/update/" method="post">
         <input type="text" name="id" id="id" placeholder="아이디" maxlength="16" value="{{user.user_id}}" required readonly>
         <input type="email" name="email" id="email" placeholder="이메일" maxlength="40" value="{{user.email}}" required>
-        <input type="text" name="region" id="region" placeholder="거주지" maxlength="40" value="{{user.region}}">
-        <input type="text" name="disease" id="disease" placeholder="질병명" maxlength="40" value="{{user.diseases}}">
-        {% csrf_token %}
+        <input type="text" name="region" id="region" placeholder="거주지" maxlength="40" value="{{region}}">
+        <input type="text" name="disease" id="disease" placeholder="질병명" maxlength="40" value="{{diseases}}">
+<!--        {% csrf_token %}-->
         <button type="submit" id="edit">수정</button>
     </form>
     <div class="link-container">
