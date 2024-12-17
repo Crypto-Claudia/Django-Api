@@ -111,6 +111,7 @@ def login_response(request):
         # DB에 저장된 비밀번호와 입력된 비밀번호를 비교
         if user_pw == user.password:  # 비밀번호 비교
             login(request, user)
+
             return JsonResponse({'success': True, 'data': user.nickname})  # 로그인 성공
         else:
             return JsonResponse({'success': False, 'message': '비밀번호가 틀렸습니다.'})  # 비밀번호 오류

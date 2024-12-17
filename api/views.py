@@ -26,11 +26,12 @@ def do_login(request):
         # 해당 ID를 가진 사용자가 없다면 로그인 실패 처리
         return JsonResponse({'success': False, 'message': '아이디가 존재하지 않습니다.'})
 
-
     # DB에 저장된 비밀번호와 입력된 비밀번호를 비교
     if user_pw == user.password:  # 비밀번호 비교
         login(request, user)
-        return JsonResponse({'success': True, 'data': serialized_user.data})  # 로그인 성공
+        # print(request.session.session_key)
+        data = serialized_user.data | {'session_id': request.session.session_key}
+        return JsonResponse({'success': True, 'data': data})  # 로그인 성공
     else:
         return JsonResponse({'success': False, 'message': '비밀번호가 틀렸습니다.'})  # 비밀번호 오류
 
