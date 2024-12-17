@@ -1,8 +1,9 @@
 # Create your views here.
 from django import template
 from django.contrib.auth import authenticate, login, logout
+from django.contrib.auth.decorators import login_required
 from django.db import transaction
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from django.http import HttpResponse, JsonResponse
 from datetime import datetime
 from .models import Users, Info
@@ -32,12 +33,61 @@ def register(request):
     context = {}
     return render(request, 'nidRegister.html', context)
 
+@login_required(login_url='/nidLogin')
+def my_page(request):
+    context = {}
+    return render(request, 'mypage.html', context)
+
+@login_required(login_url='/nidLogin')
+def update_user_info(request):
+    if request.method == 'POST':
+        try:
+            # 현재 로그인한 사용자 가져오기
+            user = request.user
+
+            # Users 테이블에서 해당 사용자 객체 가져오기
+            user_record = get_object_or_404(Users, user_id=user.user_id)
+
+            # Info 테이블에서 해당 사용자 정보 가져오기
+            info_record = get_object_or_404(Info, id=user_record.id)
+
+            # POST 데이터 가져오기
+            user_email = request.POST.get('email')
+            user_region = request.POST.get('region')
+            user_disease = request.POST.get('disease')
+
+            # Users 테이블 업데이트
+            if user_email:
+                user_record.email = user_email
+
+            # Info 테이블 업데이트
+            if user_region:
+                info_record.region = user_region
+            if user_disease:
+                info_record.diseases = user_disease
+
+            # 데이터 저장
+            user_record.save()
+            info_record.save()
+
+            # 디버그 출력 (필요시)
+            print(f"User: {user_record.user_id}, Email: {user_record.email}")
+            print(f"Info: ID {info_record.id}, Region: {info_record.region}, Disease: {info_record.diseases}")
+
+            return JsonResponse({'success': True})
+
+        except Exception as e:
+            # 예외 처리
+            return JsonResponse({'success': False, 'error': str(e)}, status=500)
+    else:
+        return JsonResponse({'success': False, 'error': 'Invalid request method'}, status=400)
+
 def login_response(request):
     if request.method == 'POST':
         user_id = request.POST.get('id')
         user_pw = request.POST.get('pw')
 
-        print(f'id: {user_id}, pw: {user_pw}')
+        # print(f'id: {user_id}, pw: {user_pw}')
 
         # 사용자가 입력한 ID에 해당하는 사용자 정보를 DB에서 조회
         try:

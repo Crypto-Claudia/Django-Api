@@ -17,6 +17,7 @@
     <p>id {{ user.id }}</p>
     <p>is super? {{ user.is_superuser }}</p>
     <p><a href="{% url 'common:log_out' %}">Do log out</a></p>
+    <p><a href="/mypage">My page</a></p>
     {% else %}
     <h2><a href="/nidLogin">Do log in</a></h2>
     {% endif %}
