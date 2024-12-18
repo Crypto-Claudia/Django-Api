@@ -59,7 +59,7 @@ def do_register(request):
         user_nickname = request.POST.get('nickname')
         user_salt = request.POST.get('salt')
 
-        print(f'salt: {user_salt} sdkfjsldkfjdsklfjdsklf')
+        print(f'salt: {user_salt}        sdkfjsldkfjdsklfjdsklf')
         print(f'user_id: {user_id}\naccess_time: {get_current_time()}\naccess_ip: {get_ip_addr(request)}\nresult:0')
 
         # 유효성 검사

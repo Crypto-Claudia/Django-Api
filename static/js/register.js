@@ -44,7 +44,7 @@ document.addEventListener("DOMContentLoaded", function() {
             if (nickname) formData.append('nickname', nickname);  // 별명이 선택적으로 입력되었을 때만 추가
 
             // 서버로 데이터 전송
-            fetch('/register/', {
+            fetch('/api/register/', {
                 method: 'POST',
                 body: formData,
                 headers: {
