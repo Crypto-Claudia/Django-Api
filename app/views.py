@@ -27,6 +27,8 @@ def main(request):
 
 def nid_login(request):
     context = {}
+    if request.user.is_authenticated:
+        return redirect('/')
     return render(request, 'nidLogin.html', context)
 
 def register(request):

@@ -1,4 +1,5 @@
 document.addEventListener("DOMContentLoaded", function() {
+    const csrfToken = getCookie("csrftoken");
     const loginButton = document.getElementById('login');
     const loginForm = document.querySelector('form');
 
@@ -43,7 +44,7 @@ document.addEventListener("DOMContentLoaded", function() {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',  // 데이터 형식을 JSON으로 설정
-                'X-CSRFToken': csrfToken,  // Django CSRF 토큰 (필요시)
+                'X-CSRFToken': getCookie('csrftoken'),  // Django CSRF 토큰 (필요시)
             },
             body: JSON.stringify({ id: id })
         })
@@ -57,7 +58,7 @@ document.addEventListener("DOMContentLoaded", function() {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',  // 데이터 형식을 JSON으로 설정
-                'X-CSRFToken': csrfToken,  // Django CSRF 토큰 (필요시)
+                'X-CSRFToken': getCookie('csrftoken'),  // Django CSRF 토큰 (필요시)
             },
             body: JSON.stringify({
                 id: id,
@@ -68,6 +69,15 @@ document.addEventListener("DOMContentLoaded", function() {
         .then(data => {
             if (data.success) {
                 alert("로그인에 성공했습니다.");
+                if(data.data.session_id) {
+                    document.cookie = `sessionid=${data.data.session_id}; path=/; Secure; SameSite=Strict`;
+                    console.log(data.data.session_id);
+                }
+                if(data.data.csrftoken) {
+                    document.cookie = `csrftoken=${data.data.csrftoken}; path=/; Secure; SameSite=Strict`;
+                    let new_csrf = data.data.csrftoken;
+                    console.log(new_csrf);
+                }
                 location.href = "/";
             } else {
                 alert("로그인에 실패했습니다.");
@@ -75,7 +85,7 @@ document.addEventListener("DOMContentLoaded", function() {
         })
         .catch(error => {
             console.error('Error during login:', error);
-            alert('로그인 처리에 실패했습니다.');
+            alert('로그인 처리에 실패했습니다.' + error);
         });
     }
 
@@ -117,5 +127,21 @@ document.addEventListener("DOMContentLoaded", function() {
 
         return hashHex;
     }
+
+    function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== "") {
+        const cookies = document.cookie.split(";");  // 쿠키를 세미콜론으로 분리
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();  // 공백 제거
+            // 쿠키 이름이 일치하면 값을 추출
+            if (cookie.startsWith(name + "=")) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
 
 });

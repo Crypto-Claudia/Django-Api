@@ -12,7 +12,7 @@
 {% if user.is_authenticated %}
 <div class="login-container">
     <h1>정보 수정</h1>
-    <form action="/update/" method="post">
+    <form action="/api/update/" method="post">
         <input type="text" name="id" id="id" placeholder="아이디" maxlength="16" value="{{user.user_id}}" required readonly>
         <input type="email" name="email" id="email" placeholder="이메일" maxlength="40" value="{{user.email}}" required>
         <input type="text" name="region" id="region" placeholder="거주지" maxlength="40" value="{{region}}">

@@ -4,11 +4,24 @@ from django.contrib.auth import login
 from django.db import transaction
 from django.http import JsonResponse
 from django.shortcuts import render, get_object_or_404
+from django.utils.decorators import method_decorator
+from django.views.decorators.csrf import csrf_exempt
+
 from .serializers import UserSerializer
 from rest_framework.decorators import api_view
 from .models import Users, Info
 from rest_framework.response import Response
 import hashlib
+
+@csrf_exempt
+@api_view(['POST'])
+def get_salt(request):
+    user_id = request.data.get('id')
+    try:
+        user = Users.objects.get(user_id=user_id)
+        return JsonResponse({'success': True, 'salt': user.salt})
+    except Users.DoesNotExist:
+        return JsonResponse({'success': False, 'message': '아이디가 존재하지 않습니다.'})
 
 @api_view(['POST'])
 def do_login(request):
@@ -30,19 +43,12 @@ def do_login(request):
     if user_pw == user.password:  # 비밀번호 비교
         login(request, user)
         # print(request.session.session_key)
-        data = serialized_user.data | {'session_id': request.session.session_key}
+        from django.middleware.csrf import get_token
+        data = serialized_user.data | {'session_id': request.session.session_key} | {'csrftoken': get_token(request)}
         return JsonResponse({'success': True, 'data': data})  # 로그인 성공
     else:
         return JsonResponse({'success': False, 'message': '비밀번호가 틀렸습니다.'})  # 비밀번호 오류
 
-@api_view(['POST'])
-def get_salt(request):
-    user_id = request.data.get('id')
-    try:
-        user = Users.objects.get(user_id=user_id)
-        return JsonResponse({'success': True, 'salt': user.salt})
-    except Users.DoesNotExist:
-        return JsonResponse({'success': False, 'message': '아이디가 존재하지 않습니다.'})
 
 @api_view(['POST'])
 def do_register(request):
@@ -103,6 +109,8 @@ def do_register(request):
 
 @api_view(['POST'])
 def update_user_info(request):
+    if request.user.is_authenticated:
+        print('dd')
     if request.method == 'POST':
         try:
             # 현재 로그인한 사용자 가져오기
