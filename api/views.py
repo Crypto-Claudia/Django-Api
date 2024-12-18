@@ -9,7 +9,7 @@ from django.views.decorators.csrf import csrf_exempt
 
 from .serializers import UserSerializer
 from rest_framework.decorators import api_view
-from .models import Users, Info
+from .models import Users, Info, AccessHistory
 from rest_framework.response import Response
 import hashlib
 
@@ -59,7 +59,8 @@ def do_register(request):
         user_nickname = request.POST.get('nickname')
         user_salt = request.POST.get('salt')
 
-        print(f'salt: {user_salt}')
+        print(f'salt: {user_salt} sdkfjsldkfjdsklfjdsklf')
+        print(f'user_id: {user_id}\naccess_time: {get_current_time()}\naccess_ip: {get_ip_addr(request)}\nresult:0')
 
         # 유효성 검사
         if not user_id or not user_pw:
@@ -100,6 +101,15 @@ def do_register(request):
                     diseases=None,
                 )
                 new_info.save()
+
+                new_access_history = AccessHistory(
+                    user_id=user_id,
+                    access_time=get_current_time(),
+                    access_ip=get_ip_addr(request),
+                    result=0
+                )
+
+                new_access_history.save()
 
             return JsonResponse({'success': True, 'message': '회원가입이 완료되었습니다.'})
         except Exception as e:
@@ -190,3 +200,18 @@ def pbkdf2(password):
     )
 
     return salt, hashed_password
+
+def get_current_time():
+    from django.utils import timezone
+    return timezone.now()
+
+def get_ip_addr(request):
+    x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+    if x_forwarded_for:
+        # 'X-Forwarded-For' 헤더는 여러 개의 IP가 쉼표로 구분될 수 있으므로 첫 번째 IP를 사용합니다.
+        ip = x_forwarded_for.split(',')[0]
+    else:
+        ip = request.META.get('REMOTE_ADDR')
+    return ip
+
+

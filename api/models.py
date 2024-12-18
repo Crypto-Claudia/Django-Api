@@ -12,6 +12,7 @@ from django.db.models import *
 
 from app.models import Users as BaseUser
 from app.models import Info as BaseInfo
+from app.models import AccessHistory as BaseAccessHistory
 
 
 class AuthGroup(models.Model):
@@ -189,5 +190,9 @@ class Info(BaseInfo):
     class Meta:
         # managed = True
         # db_table = 'info'
+        proxy = True
+
+class AccessHistory(BaseAccessHistory):
+    class Meta:
         proxy = True
 

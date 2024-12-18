@@ -186,3 +186,13 @@ class Info(models.Model):
     class Meta:
         managed = True
         db_table = 'info'
+
+class AccessHistory(models.Model):
+    user_id = models.CharField('app.Users', max_length=16, db_column='USER_ID')  # Field name made lowercase.
+    access_time = models.DateTimeField(db_column='ACCESS_TIME', null=True, blank=False)
+    access_ip = models.CharField(db_column='ACCESS_IP', max_length=40, null=False)  # Field name made lowercase.
+    result = models.IntegerField(db_column='RESULT', null=False)
+
+    class Meta:
+        managed = True
+        db_table = 'access_history'
