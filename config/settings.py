@@ -135,6 +135,9 @@ CORS_ALLOWED_ORIGINS = [
     "http://127.0.0.1:8000"   # Django 앱의 주소
 ]
 
+# Session 만료 시간 설정 N초
+SESSION_COOKIE_AGE = 1800 # 30분
+
 # Internationalization
 # https://docs.djangoproject.com/en/5.1/topics/i18n/
 
