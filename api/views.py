@@ -11,6 +11,7 @@ from .serializers import UserSerializer
 from rest_framework.decorators import api_view
 from .models import Users, Info, AccessHistory
 from rest_framework.response import Response
+from .code import HistoryCode
 import hashlib
 
 @csrf_exempt
@@ -37,20 +38,19 @@ def do_login(request):
         serialized_user = UserSerializer(instance=user)
     except Users.DoesNotExist:
         # 해당 ID를 가진 사용자가 없다면 로그인 실패 처리
-        create_history(request, user_id, 2)
+        create_history(request, user_id, HistoryCode.fail)
         return JsonResponse({'success': False, 'message': '아이디가 존재하지 않습니다.'})
 
     # DB에 저장된 비밀번호와 입력된 비밀번호를 비교
     if user_pw == user.password:  # 비밀번호 비교
         login(request, user)
         # print(request.session.session_key)
-        create_history(request, user_id, 1)
+        create_history(request, user_id, HistoryCode.success)
         from django.middleware.csrf import get_token
         data = serialized_user.data | {'session_id': request.session.session_key} | {'csrftoken': get_token(request)}
-        create_history(request, user_id, 2)
         return JsonResponse({'success': True, 'data': data})  # 로그인 성공
     else:
-        create_history(request, user_id, 2)
+        create_history(request, user_id, HistoryCode.fail)
         return JsonResponse({'success': False, 'message': '비밀번호가 틀렸습니다.'})  # 비밀번호 오류
 
 
@@ -103,7 +103,7 @@ def do_register(request):
                 )
                 new_info.save()
 
-            create_history(user_id, request, 0)
+            create_history(user_id, request, HistoryCode.registration)
 
             return JsonResponse({'success': True, 'message': '회원가입이 완료되었습니다.'})
         except Exception as e:
@@ -149,7 +149,7 @@ def update_user_info(request):
             print(f"User: {user_record.user_id}, Email: {user_record.email}")
             print(f"Info: ID {info_record.id}, Region: {info_record.region}, Disease: {info_record.diseases}")
 
-            create_history(request, user.user_id, 3)
+            create_history(request, user.user_id, HistoryCode.update_info)
 
             return JsonResponse({'success': True}, status=200)
 
@@ -179,6 +179,7 @@ def update_password(request):
             return JsonResponse({'success': False, 'message': '현재 비밀번호가 일치하지않습니다.'})
 
         user_record.save()
+        create_history(request, user.user_id, HistoryCode.update_password)
         return JsonResponse({'success': True})
 
     except Exception as e:
