@@ -37,16 +37,20 @@ def do_login(request):
         serialized_user = UserSerializer(instance=user)
     except Users.DoesNotExist:
         # 해당 ID를 가진 사용자가 없다면 로그인 실패 처리
+        create_history(request, user_id, 2)
         return JsonResponse({'success': False, 'message': '아이디가 존재하지 않습니다.'})
 
     # DB에 저장된 비밀번호와 입력된 비밀번호를 비교
     if user_pw == user.password:  # 비밀번호 비교
         login(request, user)
         # print(request.session.session_key)
+        create_history(request, user_id, 1)
         from django.middleware.csrf import get_token
         data = serialized_user.data | {'session_id': request.session.session_key} | {'csrftoken': get_token(request)}
+        create_history(request, user_id, 2)
         return JsonResponse({'success': True, 'data': data})  # 로그인 성공
     else:
+        create_history(request, user_id, 2)
         return JsonResponse({'success': False, 'message': '비밀번호가 틀렸습니다.'})  # 비밀번호 오류
 
 
@@ -58,9 +62,6 @@ def do_register(request):
         user_email = request.POST.get('email')
         user_nickname = request.POST.get('nickname')
         user_salt = request.POST.get('salt')
-
-        print(f'salt: {user_salt}        sdkfjsldkfjdsklfjdsklf')
-        print(f'user_id: {user_id}\naccess_time: {get_current_time()}\naccess_ip: {get_ip_addr(request)}\nresult:0')
 
         # 유효성 검사
         if not user_id or not user_pw:
@@ -102,14 +103,7 @@ def do_register(request):
                 )
                 new_info.save()
 
-                new_access_history = AccessHistory(
-                    user_id=user_id,
-                    access_time=get_current_time(),
-                    access_ip=get_ip_addr(request),
-                    result=0
-                )
-
-                new_access_history.save()
+            create_history(user_id, request, 0)
 
             return JsonResponse({'success': True, 'message': '회원가입이 완료되었습니다.'})
         except Exception as e:
@@ -154,6 +148,8 @@ def update_user_info(request):
             # 디버그 출력 (필요시)
             print(f"User: {user_record.user_id}, Email: {user_record.email}")
             print(f"Info: ID {info_record.id}, Region: {info_record.region}, Disease: {info_record.diseases}")
+
+            create_history(request, user.user_id, 3)
 
             return JsonResponse({'success': True}, status=200)
 
@@ -204,6 +200,18 @@ def pbkdf2(password):
 def get_current_time():
     from django.utils import timezone
     return timezone.now()
+
+def create_history(request, user_id, code):
+    with transaction.atomic():
+        new_access_history = AccessHistory(
+            user_id=user_id,
+            access_time=get_current_time(),
+            access_ip=get_ip_addr(request),
+            result=code,
+        )
+
+        new_access_history.save()
+    return None
 
 def get_ip_addr(request):
     x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
