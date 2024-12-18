@@ -68,7 +68,7 @@ document.addEventListener("DOMContentLoaded", function() {
         .then(response => response.json())
         .then(data => {
             if (data.success) {
-                alert("로그인에 성공했습니다.");
+//                alert("로그인에 성공했습니다.");
                 if(data.data.session_id) {
                     document.cookie = `sessionid=${data.data.session_id}; path=/; Secure; SameSite=Strict`;
                     console.log(data.data.session_id);

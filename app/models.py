@@ -179,7 +179,7 @@ class Users(AbstractBaseUser, PermissionsMixin):
         db_table = 'users'
 
 class Info(models.Model):
-    id = models.OneToOneField('app.Users', models.DO_NOTHING, db_column='ID', primary_key=True)  # Field name made lowercase.
+    id = models.OneToOneField('app.Users', on_delete=models.CASCADE, db_column='ID', primary_key=True)  # Field name made lowercase.
     region = models.CharField(db_column='REGION', max_length=16, blank=True, null=True)  # Field name made lowercase.
     diseases = models.CharField(db_column='DISEASES', max_length=100, blank=True, null=True)  # Field name made lowercase.
 

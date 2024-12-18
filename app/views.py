@@ -96,6 +96,17 @@ def update_user_info(request):
     else:
         return JsonResponse({'success': False, 'error': 'Invalid request method'}, status=400)
 
+@login_required(login_url='/nidLogin')
+def update_user_password(request):
+    try:
+        context = {
+            'user_id': request.user.user_id,
+            'salt': request.user.salt,
+        }
+        return render(request, 'updatePassword.html', context)
+    except Exception as e:
+        return render(request, 'nidLogin.html', {})
+
 def login_response(request):
     if request.method == 'POST':
         user_id = request.POST.get('id')

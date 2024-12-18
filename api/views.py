@@ -109,8 +109,8 @@ def do_register(request):
 
 @api_view(['POST'])
 def update_user_info(request):
-    if request.user.is_authenticated:
-        print('dd')
+    if not request.user.is_authenticated:
+        return JsonResponse({'success': False, 'message': '잘못된 요청입니다.'})
     if request.method == 'POST':
         try:
             # 현재 로그인한 사용자 가져오기
@@ -149,9 +149,35 @@ def update_user_info(request):
 
         except Exception as e:
             # 예외 처리
-            return JsonResponse({'success': False, 'error': str(e)}, status=500)
+            return JsonResponse({'success': False, 'message': '알 수 없는 오류가 발생하였습니다.'}, status=500)
     else:
-        return JsonResponse({'success': False, 'error': 'Invalid request method'}, status=400)
+        return JsonResponse({'success': False, 'message': 'Invalid request method'}, status=400)
+
+@api_view(['POST'])
+def update_password(request):
+    if not request.user.is_authenticated:
+        print('비밀번호 변경 프로세스')
+        return JsonResponse({'success': False, 'message': '잘못된 요청입니다.'})
+    try:
+        user = request.user
+        user_record = get_object_or_404(Users, user_id=user.user_id)
+        # 데이터 가져오기
+        current_password = request.data.get('current_password')
+        new_password = request.data.get('new_password')
+        new_salt = request.data.get('new_salt')
+
+        if user_record.password == current_password:
+            user_record.password = new_password
+            user_record.salt = new_salt
+        else:
+            return JsonResponse({'success': False, 'message': '현재 비밀번호가 일치하지않습니다.'})
+
+        user_record.save()
+        return JsonResponse({'success': True})
+
+    except Exception as e:
+        return JsonResponse({'success': False, 'message': '예상치 못한 오류가 발생하였습니다.'})
+
 
 def pbkdf2(password):
     salt = os.urandom(16)
