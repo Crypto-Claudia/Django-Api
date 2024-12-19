@@ -98,12 +98,12 @@ def do_register(request):
                 # Info 생성
                 new_info = Info(
                     id=new_user,  # ForeignKey에 Users 인스턴스 할당
-                    region=None,
-                    diseases=None,
+                    region='서울시',
+                    diseases='없음',
                 )
                 new_info.save()
 
-            create_history(user_id, request, HistoryCode.registration)
+            create_history(request, user_id, HistoryCode.registration)
 
             return JsonResponse({'success': True, 'message': '회원가입이 완료되었습니다.'})
         except Exception as e:
@@ -127,9 +127,9 @@ def update_user_info(request):
             info_record = get_object_or_404(Info, id=user_record.id)
 
             # POST 데이터 가져오기
-            user_email = request.POST.get('email')
-            user_region = request.POST.get('region')
-            user_disease = request.POST.get('disease')
+            user_email = request.data.get('email')
+            user_region = request.data.get('region')
+            user_disease = request.data.get('diseases')
 
             # Users 테이블 업데이트
             if user_email:
@@ -162,7 +162,6 @@ def update_user_info(request):
 @api_view(['POST'])
 def update_password(request):
     if not request.user.is_authenticated:
-        print('비밀번호 변경 프로세스')
         return JsonResponse({'success': False, 'message': '잘못된 요청입니다.'})
     try:
         user = request.user

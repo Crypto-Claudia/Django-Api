@@ -66,9 +66,10 @@ def update_user_info(request):
             info_record = get_object_or_404(Info, id=user_record.id)
 
             # POST 데이터 가져오기
-            user_email = request.POST.get('email')
-            user_region = request.POST.get('region')
-            user_disease = request.POST.get('disease')
+            user_email = request.data.get('email')
+            user_region = request.data.get('region')
+            user_disease = request.data.get('disease')
+            print(user_email, user_region, user_disease)
 
             # Users 테이블 업데이트
             if user_email:

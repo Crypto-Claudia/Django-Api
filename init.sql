@@ -29,6 +29,7 @@ INSERT INTO INFO VALUES ('admin', '부산', '기관지염');
 
 
 -- 아래는 테이블 삭제
+-- 일괄 마이그레이션하면 오류남,, app먼저 진행후 api 마이그레이션 구구혓
 drop table auth_group_permissions;
 drop table auth_user_user_permissions;
 drop table auth_permission;
@@ -43,4 +44,6 @@ drop table auth_user;
 DROP TABLE INFO;
 DROP TABLE USERS;
 
--- 일괄 마이그레이션하면 오류남,, app먼저 진행후 api 마이그레이션 구구혓
+-- 테스트용 계정 삭제
+delete from info where id in (select id from users where last_login is null);
+delete from users where last_login is null;
