@@ -1,6 +1,6 @@
 import os
 
-from django.contrib.auth import login
+from django.contrib.auth import login, logout
 from django.db import transaction
 from django.http import JsonResponse
 from django.shortcuts import render, get_object_or_404
@@ -13,6 +13,7 @@ from .models import Users, Info, AccessHistory
 from rest_framework.response import Response
 from .code import HistoryCode, HttpStatusCode
 import hashlib
+from .util import color
 
 @api_view(['POST'])
 def get_salt(request):
@@ -25,6 +26,7 @@ def get_salt(request):
 
 @api_view(['POST'])
 def do_login(request):
+    print(color(f'login -> request.COOKIES: [yellow]{request.COOKIES}[/yellow]'))
     # user_id = request.GET.get('id')
     user_id = request.data.get('id')
     # user_pw = request.GET.get('pw')
@@ -47,10 +49,27 @@ def do_login(request):
         create_history(request, user_id, HistoryCode.success)
         from django.middleware.csrf import get_token
         data = serialized_user.data | {'session_id': request.session.session_key} | {'csrftoken': get_token(request)}
+        print(color(f'userId: [red]{user_id}[/red]가 로그인'))
         return JsonResponse({'success': True, 'data': data}, status=HttpStatusCode.ok)  # 로그인 성공
     else:
         create_history(request, user_id, HistoryCode.fail)
         return JsonResponse({'success': False, 'message': '계정이 존재하지않습니다.'}, status=HttpStatusCode.bad_request)  # 비밀번호 오류
+
+@api_view(['POST'])
+def check_login(request):
+    print(color(f'check_login -> request.COOKIES: [yellow]{request.COOKIES}[/yellow]'))
+    if request.user.is_authenticated:
+        return JsonResponse({'success': True}, status=HttpStatusCode.ok)
+    return JsonResponse({'success': False, 'message': '로그인 된 상태가 아닙니다.'}, status=HttpStatusCode.bad_request)
+
+@api_view(['POST'])
+def do_logout(request):
+    print(color(f'logout -> request.COOKIES: [yellow]{request.COOKIES}[/yellow]'))
+    if request.user.is_authenticated:
+        logout(request.user)
+        print(color(f'userId: [red]{request.user.user_id}[/red]가 로그아웃'))
+    return JsonResponse({'success': True}, status=HttpStatusCode.ok)
+
 
 
 @api_view(['POST'])
