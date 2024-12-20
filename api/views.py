@@ -49,7 +49,7 @@ def do_login(request):
         create_history(request, user_id, HistoryCode.success)
         from django.middleware.csrf import get_token
         data = serialized_user.data | {'session_id': request.session.session_key} | {'csrftoken': get_token(request)}
-        print(color(f'userId: [red]{user_id}[/red]가 로그인'))
+        print(color(f'userId: [red]{user_id}[/red] [blue]로그인[/blue]'))
         return JsonResponse({'success': True, 'data': data}, status=HttpStatusCode.ok)  # 로그인 성공
     else:
         create_history(request, user_id, HistoryCode.fail)
@@ -66,9 +66,10 @@ def check_login(request):
 def do_logout(request):
     print(color(f'logout -> request.COOKIES: [yellow]{request.COOKIES}[/yellow]'))
     if request.user.is_authenticated:
-        logout(request.user)
-        print(color(f'userId: [red]{request.user.user_id}[/red]가 로그아웃'))
-    return JsonResponse({'success': True}, status=HttpStatusCode.ok)
+        print(color(f'userId: [red]{request.user.user_id}[/red] [blue]로그아웃[/blue]'))
+        logout(request)
+    from django.middleware.csrf import get_token
+    return JsonResponse({'success': True, 'data': {'csrftoken': get_token(request)}}, status=HttpStatusCode.ok)
 
 
 
@@ -200,7 +201,7 @@ def update_password(request):
         return JsonResponse({'success': True}, status=HttpStatusCode.ok)
 
     except Exception as e:
-        return JsonResponse({'success': False, 'message': '예상치 못한 오류가 발생하였습니다.'}, HttpStatusCode.internal_server_error)
+        return JsonResponse({'success': False, 'message': '예상치 못한 오류가 발생하였습니다.'}, status=HttpStatusCode.internal_server_error)
 
 
 def pbkdf2(password):
