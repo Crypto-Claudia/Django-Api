@@ -6,6 +6,7 @@ from django.http import JsonResponse
 from django.shortcuts import render, get_object_or_404
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
+from django.middleware.csrf import get_token
 
 from .serializers import UserSerializer
 from rest_framework.decorators import api_view
@@ -47,9 +48,8 @@ def do_login(request):
         login(request, user)
         # print(request.session.session_key)
         create_history(request, user_id, HistoryCode.success)
-        from django.middleware.csrf import get_token
         data = serialized_user.data | {'session_id': request.session.session_key} | {'csrftoken': get_token(request)}
-        print(color(f'userId: [red]{user_id}[/red] [blue]로그인[/blue]'))
+        print(color(f'[red][LOGIN][/red] userId: [red]{user_id}[/red]'))
         return JsonResponse({'success': True, 'data': data}, status=HttpStatusCode.ok)  # 로그인 성공
     else:
         create_history(request, user_id, HistoryCode.fail)
@@ -66,9 +66,8 @@ def check_login(request):
 def do_logout(request):
     print(color(f'logout -> request.COOKIES: [yellow]{request.COOKIES}[/yellow]'))
     if request.user.is_authenticated:
-        print(color(f'userId: [red]{request.user.user_id}[/red] [blue]로그아웃[/blue]'))
+        print(color(f'[red][LOGOUT][/red] userId: [red]{request.user.user_id}[/red]'))
         logout(request)
-    from django.middleware.csrf import get_token
     return JsonResponse({'success': True, 'data': {'csrftoken': get_token(request)}}, status=HttpStatusCode.ok)
 
 
@@ -76,11 +75,11 @@ def do_logout(request):
 @api_view(['POST'])
 def do_register(request):
     if request.method == 'POST':
-        user_id = request.POST.get('id')
-        user_pw = request.POST.get('pw')
-        user_email = request.POST.get('email')
-        user_nickname = request.POST.get('nickname')
-        user_salt = request.POST.get('salt')
+        user_id = request.data.get('id')
+        user_pw = request.data.get('pw')
+        user_email = request.data.get('email')
+        user_nickname = request.data.get('nickname')
+        user_salt = request.data.get('salt')
 
         # 유효성 검사
         if not user_id or not user_pw:
@@ -123,6 +122,7 @@ def do_register(request):
                 new_info.save()
 
             create_history(request, user_id, HistoryCode.registration)
+            print(color(f'[red][REGISTER][/red] userId: [red]{user_id}[/red]'))
 
             return JsonResponse({'success': True, 'message': '회원가입이 완료되었습니다.'}, status=HttpStatusCode.created)
         except Exception as e:
@@ -165,10 +165,12 @@ def update_user_info(request):
             info_record.save()
 
             # 디버그 출력 (필요시)
-            print(f"User: {user_record.user_id}, Email: {user_record.email}")
-            print(f"Info: ID {info_record.id}, Region: {info_record.region}, Disease: {info_record.diseases}")
+            # print(f"User: {user_record.user_id}, Email: {user_record.email}")
+            # print(f"Info: ID {info_record.id}, Region: {info_record.region}, Disease: {info_record.diseases}")
 
             create_history(request, user.user_id, HistoryCode.update_info)
+
+            print(color(f'[red][UPDATE-INFO][/red] userId: [red]{user_record.user_id}[/red]'))
 
             return JsonResponse({'success': True}, status=HttpStatusCode.ok)
 
@@ -198,11 +200,69 @@ def update_password(request):
 
         user_record.save()
         create_history(request, user.user_id, HistoryCode.update_password)
-        return JsonResponse({'success': True}, status=HttpStatusCode.ok)
+        data = {
+            'session_id': request.session.session_key,
+            'csrftoken': get_token(request),
+        }
+        print(color(f'[red][UPDATE-PASS][/red] userId: [red]{user_record.user_id}[/red]'))
+        return JsonResponse({'success': True, 'data': data}, status=HttpStatusCode.ok)
 
     except Exception as e:
         return JsonResponse({'success': False, 'message': '예상치 못한 오류가 발생하였습니다.'}, status=HttpStatusCode.internal_server_error)
 
+@api_view(['POST'])
+def get_user_data(request):
+    if not request.user.is_authenticated:
+        return JsonResponse({'success': False, 'message': '잘못된 요청입니다.'}, status=HttpStatusCode.forbidden)
+    if request.method == 'POST':
+        try:
+            # 현재 로그인한 사용자 가져오기
+            user = request.user
+
+            # Users 테이블에서 해당 사용자 객체 가져오기
+            user_record = get_object_or_404(Users, user_id=user.user_id)
+
+            # Info 테이블에서 해당 사용자 정보 가져오기
+            info_record = get_object_or_404(Info, id=user_record.id)
+
+            response_json = {
+                'user_id': user_record.user_id,
+                'email': user_record.email,
+                'region': info_record.region,
+                'diseases': info_record.diseases,
+            }
+
+            # 디버그 출력 (필요시)
+            # print(f"User: {user_record.user_id}, Email: {user_record.email}")
+            # print(f"Info: ID {info_record.id}, Region: {info_record.region}, Disease: {info_record.diseases}")
+
+            return JsonResponse({'success': True, 'data': response_json}, status=HttpStatusCode.ok)
+
+        except Exception as e:
+            print(color(f'[red]{e}[/red]'))
+            # 예외 처리
+            return JsonResponse({'success': False, 'message': '알 수 없는 오류가 발생하였습니다.'}, status=HttpStatusCode.internal_server_error)
+    else:
+        return JsonResponse({'success': False, 'message': 'Invalid request method'}, status=HttpStatusCode.method_not_allowed)
+
+@api_view(['POST'])
+def get_access_history(request):
+    if request.user.is_authenticated:
+        # user_id에 맞는 모든 AccessHistory 레코드를 가져옵니다.
+        access_history = AccessHistory.objects.filter(user_id=request.user.user_id)
+
+        # 결과를 data 객체에 담기
+        data = []
+        for record in access_history:
+            data.append({
+                'access_time': record.access_time,
+                'access_ip': record.access_ip,
+                'result': record.result,
+            })
+
+        return JsonResponse({'success': True, 'data': data}, status=200)
+    else:
+        return JsonResponse({'success': False, 'message': '올바른 접근이 아닙니다.'}, status=400)
 
 def pbkdf2(password):
     salt = os.urandom(16)

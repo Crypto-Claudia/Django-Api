@@ -11,4 +11,6 @@ urlpatterns = [
     path('register/', do_register, name='register'),
     path('check-auth/', check_login, name='check_login'),
     path('logout/', do_logout, name='logout'),
+    path('mypage/', get_user_data, name='mydata'),
+    path('history/', get_access_history, name='mydata'),
 ]
