@@ -43,19 +43,34 @@ def do_login(request):
 
     # 사용자가 입력한 ID에 해당하는 사용자 정보를 DB에서 조회
     try:
-        user = Users.objects.get(user_id=user_id)  # Users 모델에서 ID로 검색
-        serialized_user = UserSerializer(instance=user)
+        # Users 테이블에서 해당 사용자 객체 가져오기
+        user_record = get_object_or_404(Users, user_id=user_id)
+
+        # Info 테이블에서 해당 사용자 정보 가져오기
+        info_record = get_object_or_404(Info, id=user_record.id)
+
+        user_data = {
+            'user_id': user_record.user_id,
+            'email': user_record.email,
+            'nickname': user_record.nickname,
+            'salt': user_record.salt,
+            'region': info_record.region,
+            'diseases': info_record.diseases
+        }
+
+        # user = Users.objects.get(user_id=user_id)  # Users 모델에서 ID로 검색
+        # serialized_user = UserSerializer(instance=user)
     except Users.DoesNotExist:
         # 해당 ID를 가진 사용자가 없다면 로그인 실패 처리
         create_history(request, user_id, HistoryCode.FAIL)
         return JsonResponse({'success': False, 'message': '오류가 발생했습니다.'}, status=HttpStatusCode.BAD_REQUEST)
 
     # DB에 저장된 비밀번호와 입력된 비밀번호를 비교
-    if user_pw == user.password:  # 비밀번호 비교
-        login(request, user)
+    if user_pw == user_record.password:  # 비밀번호 비교
+        login(request, user_record)
         # print(request.session.session_key)
         create_history(request, user_id, HistoryCode.SUCCESS)
-        data = serialized_user.data | {'session_id': request.session.session_key} | {'csrftoken': get_token(request)}
+        data = user_data | {'session_id': request.session.session_key} | {'csrftoken': get_token(request)}
         print(color(f'[red][LOGIN][/red] userId: [red]{user_id}[/red]'))
         return JsonResponse({'success': True, 'data': data}, status=HttpStatusCode.OK)  # 로그인 성공
     else:
@@ -236,6 +251,7 @@ def get_user_data(request):
 
             response_json = {
                 'user_id': user_record.user_id,
+                'nickname': user_record.nickname,
                 'email': user_record.email,
                 'region': info_record.region,
                 'diseases': info_record.diseases,
