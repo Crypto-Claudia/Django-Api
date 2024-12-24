@@ -13,4 +13,5 @@ urlpatterns = [
     path('logout/', do_logout, name='logout'),
     path('mypage/', get_user_data, name='mydata'),
     path('history/', get_access_history, name='mydata'),
+    path('getAddressInfo/', get_address_info, name='get_address_info'),
 ]

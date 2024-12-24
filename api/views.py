@@ -16,14 +16,21 @@ from .code import HistoryCode, HttpStatusCode
 import hashlib
 from .util import color
 
+ADDRESS_FILE_PATH = './addr.json' # 관측소 정보를 날려줄 json파일
+def read_address_info():
+    with open(ADDRESS_FILE_PATH, 'r', encoding='utf-8') as f:
+        from rest_framework.utils import json
+        address_info = json.loads(f.read())
+        return address_info
+
 @api_view(['POST'])
 def get_salt(request):
     user_id = request.data.get('id')
     try:
         user = Users.objects.get(user_id=user_id)
-        return JsonResponse({'success': True, 'salt': user.salt}, status=HttpStatusCode.ok)
+        return JsonResponse({'success': True, 'salt': user.salt}, status=HttpStatusCode.OK)
     except Users.DoesNotExist:
-        return JsonResponse({'success': False, 'message': '아이디가 존재하지 않습니다.'}, status=HttpStatusCode.bad_request)
+        return JsonResponse({'success': False, 'message': '아이디가 존재하지 않습니다.'}, status=HttpStatusCode.BAD_REQUEST)
 
 @api_view(['POST'])
 def do_login(request):
@@ -40,27 +47,27 @@ def do_login(request):
         serialized_user = UserSerializer(instance=user)
     except Users.DoesNotExist:
         # 해당 ID를 가진 사용자가 없다면 로그인 실패 처리
-        create_history(request, user_id, HistoryCode.fail)
-        return JsonResponse({'success': False, 'message': '오류가 발생했습니다.'}, status=HttpStatusCode.bad_request)
+        create_history(request, user_id, HistoryCode.FAIL)
+        return JsonResponse({'success': False, 'message': '오류가 발생했습니다.'}, status=HttpStatusCode.BAD_REQUEST)
 
     # DB에 저장된 비밀번호와 입력된 비밀번호를 비교
     if user_pw == user.password:  # 비밀번호 비교
         login(request, user)
         # print(request.session.session_key)
-        create_history(request, user_id, HistoryCode.success)
+        create_history(request, user_id, HistoryCode.SUCCESS)
         data = serialized_user.data | {'session_id': request.session.session_key} | {'csrftoken': get_token(request)}
         print(color(f'[red][LOGIN][/red] userId: [red]{user_id}[/red]'))
-        return JsonResponse({'success': True, 'data': data}, status=HttpStatusCode.ok)  # 로그인 성공
+        return JsonResponse({'success': True, 'data': data}, status=HttpStatusCode.OK)  # 로그인 성공
     else:
-        create_history(request, user_id, HistoryCode.fail)
-        return JsonResponse({'success': False, 'message': '계정이 존재하지않습니다.'}, status=HttpStatusCode.bad_request)  # 비밀번호 오류
+        create_history(request, user_id, HistoryCode.FAIL)
+        return JsonResponse({'success': False, 'message': '계정이 존재하지않습니다.'}, status=HttpStatusCode.BAD_REQUEST)  # 비밀번호 오류
 
 @api_view(['POST'])
 def check_login(request):
     print(color(f'check_login -> request.COOKIES: [yellow]{request.COOKIES}[/yellow]'))
     if request.user.is_authenticated:
-        return JsonResponse({'success': True}, status=HttpStatusCode.ok)
-    return JsonResponse({'success': False, 'message': '로그인 된 상태가 아닙니다.'}, status=HttpStatusCode.bad_request)
+        return JsonResponse({'success': True}, status=HttpStatusCode.OK)
+    return JsonResponse({'success': False, 'message': '로그인 된 상태가 아닙니다.'}, status=HttpStatusCode.UNAUTHORIZED)
 
 @api_view(['POST'])
 def do_logout(request):
@@ -68,7 +75,7 @@ def do_logout(request):
     if request.user.is_authenticated:
         print(color(f'[red][LOGOUT][/red] userId: [red]{request.user.user_id}[/red]'))
         logout(request)
-    return JsonResponse({'success': True, 'data': {'csrftoken': get_token(request)}}, status=HttpStatusCode.ok)
+    return JsonResponse({'success': True, 'data': {'csrftoken': get_token(request)}}, status=HttpStatusCode.OK)
 
 
 
@@ -83,18 +90,18 @@ def do_register(request):
 
         # 유효성 검사
         if not user_id or not user_pw:
-            return JsonResponse({'success': False, 'message': '모든 필드를 입력해야 합니다.'}, status=HttpStatusCode.bad_request)
+            return JsonResponse({'success': False, 'message': '모든 필드를 입력해야 합니다.'}, status=HttpStatusCode.BAD_REQUEST)
 
         # ID 중복 확인
         if Users.objects.filter(user_id=user_id).exists():
-            return JsonResponse({'success': False, 'message': '이미 사용 중인 아이디입니다.'}, status=HttpStatusCode.bad_request)
+            return JsonResponse({'success': False, 'message': '이미 사용 중인 아이디입니다.'}, status=HttpStatusCode.BAD_REQUEST)
 
         # Email 중복 확인(None이면 패스)
         if user_email and Users.objects.filter(email=user_email).exists():
-            return JsonResponse({'success': False, 'message': '이미 사용 중인 이메일입니다.'}, status=HttpStatusCode.bad_request)
+            return JsonResponse({'success': False, 'message': '이미 사용 중인 이메일입니다.'}, status=HttpStatusCode.BAD_REQUEST)
 
         if not user_salt:
-            return JsonResponse({'success': False, 'message': '값이 누락되었습니다.'}, status=HttpStatusCode.bad_request)
+            return JsonResponse({'success': False, 'message': '값이 누락되었습니다.'}, status=HttpStatusCode.BAD_REQUEST)
 
         # 닉네임이 없으면 id로 교체
         if not user_nickname:
@@ -121,19 +128,19 @@ def do_register(request):
                 )
                 new_info.save()
 
-            create_history(request, user_id, HistoryCode.registration)
+            create_history(request, user_id, HistoryCode.REGISTRATION)
             print(color(f'[red][REGISTER][/red] userId: [red]{user_id}[/red]'))
 
-            return JsonResponse({'success': True, 'message': '회원가입이 완료되었습니다.'}, status=HttpStatusCode.created)
+            return JsonResponse({'success': True, 'message': '회원가입이 완료되었습니다.'}, status=HttpStatusCode.CREATED)
         except Exception as e:
-            return JsonResponse({'success': False, 'message': '회원가입 중 오류가 발생했습니다.'}, status=HttpStatusCode.bad_request)
+            return JsonResponse({'success': False, 'message': '회원가입 중 오류가 발생했습니다.'}, status=HttpStatusCode.BAD_REQUEST)
 
-    return JsonResponse({'success': False, 'message': '잘못된 요청입니다.'}, status=HttpStatusCode.bad_request)
+    return JsonResponse({'success': False, 'message': '잘못된 요청입니다.'}, status=HttpStatusCode.BAD_REQUEST)
 
 @api_view(['POST'])
 def update_user_info(request):
     if not request.user.is_authenticated:
-        return JsonResponse({'success': False, 'message': '잘못된 요청입니다.'}, status=HttpStatusCode.forbidden)
+        return JsonResponse({'success': False, 'message': '잘못된 요청입니다.'}, status=HttpStatusCode.FORBIDDEN)
     if request.method == 'POST':
         try:
             # 현재 로그인한 사용자 가져오기
@@ -168,22 +175,24 @@ def update_user_info(request):
             # print(f"User: {user_record.user_id}, Email: {user_record.email}")
             # print(f"Info: ID {info_record.id}, Region: {info_record.region}, Disease: {info_record.diseases}")
 
-            create_history(request, user.user_id, HistoryCode.update_info)
+            create_history(request, user.user_id, HistoryCode.UPDATE_INFO)
 
             print(color(f'[red][UPDATE-INFO][/red] userId: [red]{user_record.user_id}[/red]'))
 
-            return JsonResponse({'success': True}, status=HttpStatusCode.ok)
+
+
+            return JsonResponse({'success': True}, status=HttpStatusCode.OK)
 
         except Exception as e:
             # 예외 처리
-            return JsonResponse({'success': False, 'message': '알 수 없는 오류가 발생하였습니다.'}, status=HttpStatusCode.internal_server_error)
+            return JsonResponse({'success': False, 'message': '알 수 없는 오류가 발생하였습니다.'}, status=HttpStatusCode.INTERNAL_SERVER_ERROR)
     else:
-        return JsonResponse({'success': False, 'message': 'Invalid request method'}, status=HttpStatusCode.method_not_allowed)
+        return JsonResponse({'success': False, 'message': 'Invalid request method'}, status=HttpStatusCode.METHOD_NOT_ALLOWED)
 
 @api_view(['POST'])
 def update_password(request):
     if not request.user.is_authenticated:
-        return JsonResponse({'success': False, 'message': '잘못된 요청입니다.'}, status=HttpStatusCode.forbidden)
+        return JsonResponse({'success': False, 'message': '잘못된 요청입니다.'}, status=HttpStatusCode.FORBIDDEN)
     try:
         user = request.user
         user_record = get_object_or_404(Users, user_id=user.user_id)
@@ -196,24 +205,24 @@ def update_password(request):
             user_record.password = new_password
             user_record.salt = new_salt
         else:
-            return JsonResponse({'success': False, 'message': '현재 비밀번호가 일치하지않습니다.'}, status=HttpStatusCode.not_found)
+            return JsonResponse({'success': False, 'message': '현재 비밀번호가 일치하지않습니다.'}, status=HttpStatusCode.NOT_FOUND)
 
         user_record.save()
-        create_history(request, user.user_id, HistoryCode.update_password)
+        create_history(request, user.user_id, HistoryCode.UPDATE_PASSWORD)
         data = {
             'session_id': request.session.session_key,
             'csrftoken': get_token(request),
         }
         print(color(f'[red][UPDATE-PASS][/red] userId: [red]{user_record.user_id}[/red]'))
-        return JsonResponse({'success': True, 'data': data}, status=HttpStatusCode.ok)
+        return JsonResponse({'success': True, 'data': data}, status=HttpStatusCode.OK)
 
     except Exception as e:
-        return JsonResponse({'success': False, 'message': '예상치 못한 오류가 발생하였습니다.'}, status=HttpStatusCode.internal_server_error)
+        return JsonResponse({'success': False, 'message': '예상치 못한 오류가 발생하였습니다.'}, status=HttpStatusCode.INTERNAL_SERVER_ERROR)
 
 @api_view(['POST'])
 def get_user_data(request):
     if not request.user.is_authenticated:
-        return JsonResponse({'success': False, 'message': '잘못된 요청입니다.'}, status=HttpStatusCode.forbidden)
+        return JsonResponse({'success': False, 'message': '잘못된 요청입니다.'}, status=HttpStatusCode.FORBIDDEN)
     if request.method == 'POST':
         try:
             # 현재 로그인한 사용자 가져오기
@@ -236,14 +245,14 @@ def get_user_data(request):
             # print(f"User: {user_record.user_id}, Email: {user_record.email}")
             # print(f"Info: ID {info_record.id}, Region: {info_record.region}, Disease: {info_record.diseases}")
 
-            return JsonResponse({'success': True, 'data': response_json}, status=HttpStatusCode.ok)
+            return JsonResponse({'success': True, 'data': response_json}, status=HttpStatusCode.OK)
 
         except Exception as e:
             print(color(f'[red]{e}[/red]'))
             # 예외 처리
-            return JsonResponse({'success': False, 'message': '알 수 없는 오류가 발생하였습니다.'}, status=HttpStatusCode.internal_server_error)
+            return JsonResponse({'success': False, 'message': '알 수 없는 오류가 발생하였습니다.'}, status=HttpStatusCode.INTERNAL_SERVER_ERROR)
     else:
-        return JsonResponse({'success': False, 'message': 'Invalid request method'}, status=HttpStatusCode.method_not_allowed)
+        return JsonResponse({'success': False, 'message': 'Invalid request method'}, status=HttpStatusCode.METHOD_NOT_ALLOWED)
 
 @api_view(['POST'])
 def get_access_history(request):
@@ -260,9 +269,17 @@ def get_access_history(request):
                 'result': record.result,
             })
 
-        return JsonResponse({'success': True, 'data': data}, status=200)
+        return JsonResponse({'success': True, 'data': data}, status=HttpStatusCode.OK)
     else:
-        return JsonResponse({'success': False, 'message': '올바른 접근이 아닙니다.'}, status=400)
+        return JsonResponse({'success': False, 'message': '올바른 접근이 아닙니다.'}, status=HttpStatusCode.UNAUTHORIZED)
+
+@api_view(['GET'])
+def get_address_info(request):
+    try:
+        info = read_address_info()
+        return JsonResponse({'success': True, 'data': info})
+    except Exception as e:
+        return JsonResponse({'success': False, 'msg': f'오류가 발생했습니다. {e}'})
 
 def pbkdf2(password):
     salt = os.urandom(16)
