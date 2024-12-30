@@ -147,7 +147,7 @@ CORS_ALLOWED_ORIGINS = [
 CORS_ALLOW_CREDENTIALS = True
 
 # Session 만료 시간 설정 N초
-SESSION_COOKIE_AGE = 1800 # 30분
+SESSION_COOKIE_AGE = 36000 # 10시간
 
 # Internationalization
 # https://docs.djangoproject.com/en/5.1/topics/i18n/
