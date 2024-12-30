@@ -171,10 +171,15 @@ def update_user_info(request):
             user_email = request.data.get('email')
             user_region = request.data.get('region')
             user_disease = request.data.get('diseases')
+            user_nickname = request.data.get('nickname')
+            if not user_nickname:
+                user_nickname = user.user_id
 
             # Users 테이블 업데이트
             if user_email:
                 user_record.email = user_email
+            if user_nickname:
+                user_record.nickname = user_nickname
 
             # Info 테이블 업데이트
             if user_region:
