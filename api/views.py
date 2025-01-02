@@ -30,7 +30,7 @@ def get_salt(request):
         user = Users.objects.get(user_id=user_id)
         return JsonResponse({'success': True, 'salt': user.salt}, status=HttpStatusCode.OK)
     except Users.DoesNotExist:
-        return JsonResponse({'success': False, 'message': '아이디가 존재하지 않습니다.'}, status=HttpStatusCode.BAD_REQUEST)
+        return JsonResponse({'success': False, 'message': '올바른 정보가 아닙니다.'}, status=HttpStatusCode.BAD_REQUEST)
 
 @api_view(['POST'])
 def do_login(request):
@@ -78,13 +78,6 @@ def do_login(request):
         return JsonResponse({'success': False, 'message': '계정이 존재하지않습니다.'}, status=HttpStatusCode.BAD_REQUEST)  # 비밀번호 오류
 
 @api_view(['POST'])
-def check_login(request):
-    print(color(f'check_login -> request.COOKIES: [yellow]{request.COOKIES}[/yellow]'))
-    if request.user.is_authenticated:
-        return JsonResponse({'success': True}, status=HttpStatusCode.OK)
-    return JsonResponse({'success': False, 'message': '로그인 된 상태가 아닙니다.'}, status=HttpStatusCode.UNAUTHORIZED)
-
-@api_view(['POST'])
 def do_logout(request):
     print(color(f'logout -> request.COOKIES: [yellow]{request.COOKIES}[/yellow]'))
     if request.user.is_authenticated:
@@ -92,7 +85,12 @@ def do_logout(request):
         logout(request)
     return JsonResponse({'success': True, 'data': {'csrftoken': get_token(request)}}, status=HttpStatusCode.OK)
 
-
+@api_view(['POST'])
+def check_login(request):
+    print(color(f'check_login -> request.COOKIES: [yellow]{request.COOKIES}[/yellow]'))
+    if request.user.is_authenticated:
+        return JsonResponse({'success': True}, status=HttpStatusCode.OK)
+    return JsonResponse({'success': False, 'message': '로그인 된 상태가 아닙니다.', 'c': get_token(request)}, status=HttpStatusCode.UNAUTHORIZED)
 
 @api_view(['POST'])
 def do_register(request):
@@ -138,8 +136,8 @@ def do_register(request):
                 # Info 생성
                 new_info = Info(
                     id=new_user,  # ForeignKey에 Users 인스턴스 할당
-                    region='서울시',
-                    diseases='없음',
+                    region='서울',
+                    diseases=None,
                 )
                 new_info.save()
 
